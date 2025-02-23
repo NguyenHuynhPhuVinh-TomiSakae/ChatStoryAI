@@ -258,4 +258,20 @@ export class AuthService {
       throw new Error('Không thể cập nhật mật khẩu');
     }
   }
+
+  static async getUserByEmail(email: string) {
+    try {
+      const [users] = await pool.execute(
+        'SELECT user_id, username, email, avatar FROM users WHERE email = ?',
+        [email]
+      );
+
+      if (Array.isArray(users) && users.length > 0) {
+        return (users as any[])[0];
+      }
+      return null;
+    } catch (error: any) {
+      throw new Error('Lỗi khi lấy thông tin người dùng');
+    }
+  }
 } 

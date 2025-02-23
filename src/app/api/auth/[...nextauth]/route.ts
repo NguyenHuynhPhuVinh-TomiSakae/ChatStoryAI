@@ -50,9 +50,21 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user, trigger, session }) {
       if (user) {
-        token.id = user.id;
-        token.avatar = user.avatar || user.image;
-        token.name = user.name;
+        // Nếu là đăng nhập Google, lấy thông tin từ database
+        if (user.email) {
+          const dbUser = await AuthService.getUserByEmail(user.email);
+          if (dbUser) {
+            token.id = dbUser.user_id.toString();
+            token.name = dbUser.username;
+            token.avatar = dbUser.avatar || user.image;
+          }
+        } else {
+          // Nếu không phải Google login, sử dụng thông tin từ user
+          token.id = user.id;
+          token.avatar = user.avatar;
+          token.name = user.name;
+        }
+
         if (!user.remember) {
           token.maxAge = 0;
         } else {
@@ -78,17 +90,26 @@ export const authOptions: AuthOptions = {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
         try {
-          await AuthService.register({
+          // Đăng ký hoặc lấy thông tin user từ database
+          const result = await AuthService.register({
             username: user.name || '',
             email: user.email || '',
             password: '', // Google login không cần password
             isGoogleUser: true,
             avatar: user.image || ''
           });
+          
+          // Gán lại id từ database
+          user.id = result.userId.toString();
           return true;
         } catch (error: any) {
           if (error.message === 'Email đã được sử dụng') {
-            return true; // Cho phép đăng nhập nếu email đã tồn tại
+            // Nếu email đã tồn tại, lấy thông tin user từ database
+            const dbUser = await AuthService.getUserByEmail(user.email || '');
+            if (dbUser) {
+              user.id = dbUser.user_id.toString();
+              return true;
+            }
           }
           console.error('Error during Google sign in:', error);
           return false;

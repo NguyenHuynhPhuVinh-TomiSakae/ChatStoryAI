@@ -27,6 +27,7 @@ const handler = NextAuth({
             id: result.user.user_id.toString(),
             email: result.user.email,
             name: result.user.username,
+            avatar: result.user.avatar,
             remember: credentials.remember === "true"
           };
         } catch (error: any) {
@@ -45,6 +46,7 @@ const handler = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.avatar = user.avatar;
         if (!user.remember) {
           token.maxAge = 0; // Session expires when browser closes
         } else {
@@ -56,6 +58,7 @@ const handler = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).id = token.id;
+        (session.user as any).avatar = token.avatar;
       }
       return session;
     },

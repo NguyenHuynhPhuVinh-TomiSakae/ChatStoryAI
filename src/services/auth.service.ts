@@ -49,7 +49,7 @@ export class AuthService {
     try {
       // Get user by email
       const [users] = await pool.execute(
-        'SELECT user_id, username, email, user_password FROM users WHERE email = ?',
+        'SELECT user_id, username, email, user_password, avatar FROM users WHERE email = ?',
         [email]
       );
 

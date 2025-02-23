@@ -3,6 +3,7 @@
 
 import * as React from "react"
 import { useSession, signOut } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +19,7 @@ interface UserMenuProps {
 }
 
 export const UserMenu: React.FC<UserMenuProps> = ({ isDarkTheme, isMobile }) => {
+  const router = useRouter()
   const { data: session } = useSession()
   const [isOpen, setIsOpen] = React.useState(false)
 
@@ -51,7 +53,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isDarkTheme, isMobile }) => 
         {isOpen && (
           <div className="mt-1 bg-gray-50 dark:bg-[#1C1D21] rounded-lg">
             <button
-              onClick={() => window.location.href = '/account'}
+              onClick={() => router.push('/account')}
               className="flex w-full items-center px-6 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
             >
               <User className="mr-2 h-4 w-4" />
@@ -59,7 +61,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isDarkTheme, isMobile }) => 
             </button>
 
             <button
-              onClick={() => window.location.href = '/stories'}
+              onClick={() => router.push('/stories')}
               className="flex w-full items-center px-6 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
             >
               <BookOpen className="mr-2 h-4 w-4" />
@@ -67,7 +69,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isDarkTheme, isMobile }) => 
             </button>
 
             <button
-              onClick={() => window.location.href = '/settings'}
+              onClick={() => router.push('/settings')}
               className="flex w-full items-center px-6 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
             >
               <Settings className="mr-2 h-4 w-4" />
@@ -111,7 +113,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isDarkTheme, isMobile }) => 
         className="w-56 p-1 border border-gray-200 dark:border-gray-700"
       >
         <DropdownMenuItem
-          onClick={() => window.location.href = '/account'}
+          onClick={() => router.push('/account')}
           className="flex items-center px-3 py-2 cursor-pointer rounded hover:bg-gray-50 dark:hover:bg-gray-800"
         >
           <User className="mr-2 h-4 w-4" />
@@ -119,7 +121,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isDarkTheme, isMobile }) => 
         </DropdownMenuItem>
         
         <DropdownMenuItem
-          onClick={() => window.location.href = '/stories'}
+          onClick={() => router.push('/stories')}
           className="flex items-center px-3 py-2 cursor-pointer rounded hover:bg-gray-50 dark:hover:bg-gray-800"
         >
           <BookOpen className="mr-2 h-4 w-4" />
@@ -127,7 +129,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isDarkTheme, isMobile }) => 
         </DropdownMenuItem>
 
         <DropdownMenuItem
-          onClick={() => window.location.href = '/settings'}
+          onClick={() => router.push('/settings')}
           className="flex items-center px-3 py-2 cursor-pointer rounded hover:bg-gray-50 dark:hover:bg-gray-800"
         >
           <Settings className="mr-2 h-4 w-4" />

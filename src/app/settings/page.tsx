@@ -141,6 +141,8 @@ export default function SettingsPage() {
   };
 
   return (
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1 bg-background dark:bg-[#0B0C0F] flex items-center justify-center">
     <div className="w-full max-w-4xl py-10 px-4 md:px-6">
       <div className="space-y-6">
         <div className="text-center">
@@ -328,6 +330,8 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+    </main>
     </div>
   )
 }

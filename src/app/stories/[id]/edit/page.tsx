@@ -24,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Suspense } from "react"
+import { ChevronLeft } from "lucide-react"
 
 interface MainCategory {
   id: number
@@ -209,7 +210,16 @@ function EditStoryContent({ storyId }: { storyId: string }) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="container mx-auto px-4 py-8">
+      <Button
+        variant="outline"
+        onClick={() => router.back()}
+        className="flex items-center gap-2 mb-8"
+      >
+        <ChevronLeft className="w-4 h-4" />
+        Quay lại
+      </Button>
+
       <div className="max-w-2xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Chỉnh sửa truyện</h1>

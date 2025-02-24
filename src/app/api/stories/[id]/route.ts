@@ -24,11 +24,13 @@ export async function GET(
     const [stories] = await pool.execute(`
       SELECT 
         s.*,
-        mc.name as main_category_name,
-        GROUP_CONCAT(DISTINCT str.tag_id) as tag_ids
+        mc.name as main_category,
+        GROUP_CONCAT(DISTINCT str.tag_id) as tag_ids,
+        GROUP_CONCAT(DISTINCT st.name) as tags
       FROM stories s
       LEFT JOIN main_categories mc ON s.main_category_id = mc.category_id
       LEFT JOIN story_tag_relations str ON s.story_id = str.story_id
+      LEFT JOIN story_tags st ON str.tag_id = st.tag_id
       WHERE s.story_id = ?
       GROUP BY s.story_id
     `, [id]) as any[];
@@ -44,6 +46,9 @@ export async function GET(
     const story = stories[0];
     story.tag_ids = story.tag_ids 
       ? story.tag_ids.split(',').map(Number)
+      : [];
+    story.tags = story.tags 
+      ? story.tags.split(',')
       : [];
 
     return NextResponse.json({ story });

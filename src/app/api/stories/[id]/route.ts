@@ -7,7 +7,7 @@ import { GoogleDriveService } from "@/services/google-drive.service";
 
 export async function GET(
   request: Request,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   const { id } = await context.params;
   
@@ -20,13 +20,15 @@ export async function GET(
       );
     }
 
-    // Lấy thông tin truyện và categories
+    // Lấy thông tin truyện
     const [stories] = await pool.execute(`
       SELECT 
         s.*,
-        GROUP_CONCAT(scr.category_id) as category_ids
+        mc.name as main_category_name,
+        GROUP_CONCAT(DISTINCT str.tag_id) as tag_ids
       FROM stories s
-      LEFT JOIN story_category_relations scr ON s.story_id = scr.story_id
+      LEFT JOIN main_categories mc ON s.main_category_id = mc.category_id
+      LEFT JOIN story_tag_relations str ON s.story_id = str.story_id
       WHERE s.story_id = ?
       GROUP BY s.story_id
     `, [id]) as any[];
@@ -38,9 +40,10 @@ export async function GET(
       );
     }
 
+    // Format dữ liệu
     const story = stories[0];
-    story.category_ids = story.category_ids 
-      ? story.category_ids.split(',').map(Number)
+    story.tag_ids = story.tag_ids 
+      ? story.tag_ids.split(',').map(Number)
       : [];
 
     return NextResponse.json({ story });
@@ -55,7 +58,7 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   const { id } = await context.params;
   
@@ -71,79 +74,70 @@ export async function PUT(
     const formData = await request.formData();
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
-    const categoryIds = JSON.parse(formData.get('categoryIds') as string);
-    const coverImage = formData.get('coverImage') as File | null;
+    const mainCategoryId = formData.get('mainCategoryId') as string;
+    const tagIds = JSON.parse(formData.get('tagIds') as string);
+    const coverImage = formData.get('coverImage') as File;
 
-    // Lấy thông tin truyện cũ
-    const [stories] = await pool.execute(
-      'SELECT user_id, cover_file_id FROM stories WHERE story_id = ?',
-      [id]
-    ) as any[];
-
-    if (!stories.length) {
-      return NextResponse.json(
-        { error: "Không tìm thấy truyện" },
-        { status: 404 }
-      );
-    }
-
-    const story = stories[0];
-    let coverImageUrl = null;
-    let newFileId = null;
-
-    // Upload ảnh mới nếu có
-    if (coverImage && coverImage.size > 0) {
-      const buffer = Buffer.from(await coverImage.arrayBuffer());
-      const storyId = Number(id);
-      
-      if (isNaN(storyId)) {
-        throw new Error('Invalid story ID');
-      }
-
-      const { directLink, fileId } = await GoogleDriveService.uploadFile(
-        buffer,
-        coverImage.type,
-        story.user_id,
-        'cover',
-        storyId
-      );
-      coverImageUrl = directLink;
-      newFileId = fileId;
-
-      // Xóa ảnh cũ nếu có
-      if (story.cover_file_id) {
-        await GoogleDriveService.deleteFile(story.cover_file_id);
-      }
-    }
-
-    // Bắt đầu transaction
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
+
+      let coverImageUrl = null;
+      let newFileId = null;
+
+      // Upload ảnh mới nếu có
+      if (coverImage && coverImage.size > 0) {
+        const [users] = await connection.execute(
+          'SELECT user_id FROM users WHERE email = ?',
+          [session.user.email]
+        ) as any[];
+
+        const buffer = Buffer.from(await coverImage.arrayBuffer());
+        const { directLink, fileId } = await GoogleDriveService.uploadFile(
+          buffer,
+          coverImage.type,
+          users[0].user_id,
+          'cover',
+          parseInt(id)
+        );
+        coverImageUrl = directLink;
+        newFileId = fileId;
+
+        // Xóa ảnh cũ nếu có
+        const [oldStory] = await connection.execute(
+          'SELECT cover_file_id FROM stories WHERE story_id = ?',
+          [id]
+        ) as any[];
+
+        if (oldStory[0]?.cover_file_id) {
+          await GoogleDriveService.deleteFile(oldStory[0].cover_file_id);
+        }
+      }
 
       // Cập nhật thông tin truyện
       await connection.execute(
         `UPDATE stories SET 
           title = ?,
           description = ?,
+          main_category_id = ?,
           ${coverImageUrl ? 'cover_image = ?, cover_file_id = ?,' : ''} 
           updated_at = CURRENT_TIMESTAMP
         WHERE story_id = ?`,
         coverImageUrl 
-          ? [title, description, coverImageUrl, newFileId, id]
-          : [title, description, id]
+          ? [title, description, mainCategoryId, coverImageUrl, newFileId, id]
+          : [title, description, mainCategoryId, id]
       );
 
-      // Cập nhật categories
+      // Cập nhật tags
       await connection.execute(
-        'DELETE FROM story_category_relations WHERE story_id = ?',
+        'DELETE FROM story_tag_relations WHERE story_id = ?',
         [id]
       );
 
-      for (const categoryId of categoryIds) {
+      for (const tagId of tagIds) {
         await connection.execute(
-          'INSERT INTO story_category_relations (story_id, category_id) VALUES (?, ?)',
-          [id, categoryId]
+          'INSERT INTO story_tag_relations (story_id, tag_id) VALUES (?, ?)',
+          [id, tagId]
         );
       }
 
@@ -210,7 +204,7 @@ export async function DELETE(
 
       // Xóa các liên kết category
       await connection.execute(
-        'DELETE FROM story_category_relations WHERE story_id = ?',
+        'DELETE FROM story_tag_relations WHERE story_id = ?',
         [id]
       );
 

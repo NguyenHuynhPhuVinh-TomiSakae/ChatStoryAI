@@ -25,9 +25,16 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Suspense } from "react"
 
-interface Category {
+interface MainCategory {
   id: number
   name: string
+  description?: string
+}
+
+interface Tag {
+  id: number
+  name: string
+  description?: string
 }
 
 interface Story {
@@ -35,7 +42,8 @@ interface Story {
   title: string
   description: string
   cover_image: string | null
-  category_ids: number[]
+  main_category_id: number
+  tag_ids: number[]
   status: 'draft' | 'published' | 'archived'
 }
 
@@ -43,27 +51,35 @@ function EditStoryContent({ storyId }: { storyId: string }) {
   const router = useRouter()
   const { data: session } = useSession()
   const [isLoading, setIsLoading] = useState(false)
-  const [categories, setCategories] = useState<Category[]>([])
-  const [selectedCategories, setSelectedCategories] = useState<number[]>([])
+  const [mainCategories, setMainCategories] = useState<MainCategory[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
+  const [selectedMainCategory, setSelectedMainCategory] = useState<number | null>(null)
+  const [selectedTags, setSelectedTags] = useState<number[]>([])
   const [story, setStory] = useState<Story | null>(null)
   const [previewImage, setPreviewImage] = useState<string>("")
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch categories
+        // Fetch categories và tags
         const categoriesResponse = await fetch('/api/categories')
         const categoriesData = await categoriesResponse.json()
-        setCategories(categoriesData.categories)
+        setMainCategories(categoriesData.mainCategories)
+        setTags(categoriesData.tags)
 
         // Fetch story details
         const storyResponse = await fetch(`/api/stories/${storyId}`)
-        const storyData = await storyResponse.json()
+        const { story } = await storyResponse.json()
         
-        if (storyResponse.ok) {
-          setStory(storyData.story)
-          setSelectedCategories(storyData.story.category_ids)
-          setPreviewImage(storyData.story.cover_image || "")
+        if (storyResponse.ok && story) {
+          setStory(story)
+          setSelectedMainCategory(story.main_category_id)
+          // Đảm bảo tag_ids là mảng số
+          const tagIds = Array.isArray(story.tag_ids) 
+            ? story.tag_ids 
+            : story.tag_ids?.split(',').map(Number) || []
+          setSelectedTags(tagIds)
+          setPreviewImage(story.cover_image || "")
         } else {
           toast.error('Không thể tải thông tin truyện')
         }
@@ -77,11 +93,11 @@ function EditStoryContent({ storyId }: { storyId: string }) {
     }
   }, [session, storyId])
 
-  const toggleCategory = (categoryId: number) => {
-    setSelectedCategories(prev => 
-      prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
+  const toggleTag = (tagId: number) => {
+    setSelectedTags(prev => 
+      prev.includes(tagId)
+        ? prev.filter(id => id !== tagId)
+        : [...prev, tagId]
     )
   }
 
@@ -98,15 +114,16 @@ function EditStoryContent({ storyId }: { storyId: string }) {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (selectedCategories.length === 0) {
-      toast.error('Vui lòng chọn ít nhất một thể loại')
+    if (!selectedMainCategory) {
+      toast.error('Vui lòng chọn thể loại chính')
       return
     }
     setIsLoading(true)
 
     try {
       const formData = new FormData(e.currentTarget)
-      formData.set('categoryIds', JSON.stringify(selectedCategories))
+      formData.set('mainCategoryId', selectedMainCategory.toString())
+      formData.set('tagIds', JSON.stringify(selectedTags))
       
       const response = await fetch(`/api/stories/${storyId}`, {
         method: 'PUT',
@@ -119,7 +136,6 @@ function EditStoryContent({ storyId }: { storyId: string }) {
 
       toast.success('Cập nhật truyện thành công!')
       router.push('/stories')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast.error(error.message || 'Đã có lỗi xảy ra')
     } finally {
@@ -207,7 +223,7 @@ function EditStoryContent({ storyId }: { storyId: string }) {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Xác nhận xuất bản truyện</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Bạn có chắc chắn muốn xuất bản truyện này? Truyện sẽ được hiển thị công khai sau khi xuất bản.
+                      Bạn có chắc chắn muốn xuất bản truyện này?
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -227,15 +243,12 @@ function EditStoryContent({ storyId }: { storyId: string }) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Xác nhận xóa truyện</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Bạn có chắc chắn muốn xóa truyện này? Hành động này không thể hoàn tác.
+                    Hành động này không thể hoàn tác.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Hủy</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
+                  <AlertDialogAction onClick={handleDelete}>
                     Xóa
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -274,7 +287,6 @@ function EditStoryContent({ storyId }: { storyId: string }) {
               id="title"
               name="title"
               defaultValue={story.title}
-              placeholder="Nhập tiêu đề truyện"
               required
             />
           </div>
@@ -285,7 +297,6 @@ function EditStoryContent({ storyId }: { storyId: string }) {
               id="description"
               name="description"
               defaultValue={story.description}
-              placeholder="Nhập mô tả ngắn về truyện"
               required
               minRows={3}
               className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -293,41 +304,53 @@ function EditStoryContent({ storyId }: { storyId: string }) {
           </div>
 
           <div className="space-y-2">
-            <Label>Thể loại</Label>
+            <Label>Thể loại chính</Label>
             <div className="flex flex-wrap gap-3">
-              {categories.map((category) => (
+              {mainCategories.map((category) => (
                 <Badge
                   key={category.id}
-                  variant={selectedCategories.includes(category.id) ? "default" : "outline"}
+                  variant={selectedMainCategory === category.id ? "default" : "outline"}
                   className="cursor-pointer text-sm px-4 py-1 hover:bg-primary/10 hover:text-primary transition-colors"
-                  onClick={() => toggleCategory(category.id)}
+                  onClick={() => setSelectedMainCategory(category.id)}
                 >
                   {category.name}
                 </Badge>
               ))}
             </div>
-            {categories.length > 0 && (
-              <p className="text-sm text-muted-foreground">
-                Đã chọn {selectedCategories.length} thể loại
-              </p>
+            {!selectedMainCategory && (
+              <p className="text-sm text-destructive">Vui lòng chọn một thể loại chính</p>
             )}
           </div>
 
-          <div className="flex gap-4 pt-4">
+          <div className="space-y-2">
+            <Label>Thẻ phụ</Label>
+            <div className="flex flex-wrap gap-3">
+              {tags.map((tag) => (
+                <Badge
+                  key={tag.id}
+                  variant={selectedTags.includes(tag.id) ? "default" : "outline"}
+                  className="cursor-pointer text-sm px-4 py-1 hover:bg-primary/10 hover:text-primary transition-colors"
+                  onClick={() => toggleTag(tag.id)}
+                >
+                  {tag.name}
+                </Badge>
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Đã chọn {selectedTags.length} thẻ
+            </p>
+          </div>
+
+          <div className="flex gap-4 justify-end">
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.back()}
-              className="w-full"
+              onClick={() => router.push('/stories')}
             >
               Hủy
             </Button>
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isLoading || selectedCategories.length === 0}
-            >
-              {isLoading ? 'Đang cập nhật...' : 'Cập nhật truyện'}
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Đang cập nhật..." : "Cập nhật truyện"}
             </Button>
           </div>
         </form>

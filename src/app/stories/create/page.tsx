@@ -11,16 +11,25 @@ import TextareaAutosize from 'react-textarea-autosize'
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 
-interface Category {
+interface MainCategory {
   id: number
   name: string
+  description?: string
+}
+
+interface Tag {
+  id: number
+  name: string
+  description?: string
 }
 
 export default function CreateStoryPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  const [categories, setCategories] = useState<Category[]>([])
-  const [selectedCategories, setSelectedCategories] = useState<number[]>([])
+  const [mainCategories, setMainCategories] = useState<MainCategory[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
+  const [selectedMainCategory, setSelectedMainCategory] = useState<number | null>(null)
+  const [selectedTags, setSelectedTags] = useState<number[]>([])
   const [previewImage, setPreviewImage] = useState<string>("")
 
   useEffect(() => {
@@ -29,7 +38,8 @@ export default function CreateStoryPage() {
         const response = await fetch('/api/categories')
         const data = await response.json()
         if (response.ok) {
-          setCategories(data.categories)
+          setMainCategories(data.mainCategories)
+          setTags(data.tags)
         }
       } catch (error) {
         toast.error('Không thể tải danh sách thể loại')
@@ -50,25 +60,26 @@ export default function CreateStoryPage() {
     }
   }
 
-  const toggleCategory = (categoryId: number) => {
-    setSelectedCategories(prev => 
-      prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
+  const toggleTag = (tagId: number) => {
+    setSelectedTags(prev => 
+      prev.includes(tagId)
+        ? prev.filter(id => id !== tagId)
+        : [...prev, tagId]
     )
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (selectedCategories.length === 0) {
-      toast.error('Vui lòng chọn ít nhất một thể loại')
+    if (!selectedMainCategory) {
+      toast.error('Vui lòng chọn thể loại chính')
       return
     }
     setIsLoading(true)
 
     try {
       const formData = new FormData(e.currentTarget)
-      formData.set('categoryIds', JSON.stringify(selectedCategories))
+      formData.set('mainCategoryId', selectedMainCategory.toString())
+      formData.set('tagIds', JSON.stringify(selectedTags))
       
       const response = await fetch('/api/stories/create', {
         method: 'POST',
@@ -154,25 +165,44 @@ export default function CreateStoryPage() {
             </div>
           </div>
 
-          <div className="space-y-3">
-            <Label>Thể loại</Label>
-            <div className="flex flex-wrap gap-3">
-              {categories.map((category) => (
-                <Badge
-                  key={category.id}
-                  variant={selectedCategories.includes(category.id) ? "default" : "outline"}
-                  className="cursor-pointer text-sm px-4 py-1 hover:bg-primary/10 hover:text-primary transition-colors"
-                  onClick={() => toggleCategory(category.id)}
-                >
-                  {category.name}
-                </Badge>
-              ))}
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label>Thể loại chính</Label>
+              <div className="flex flex-wrap gap-3">
+                {mainCategories.map((category) => (
+                  <Badge
+                    key={category.id}
+                    variant={selectedMainCategory === category.id ? "default" : "outline"}
+                    className="cursor-pointer text-sm px-4 py-1 hover:bg-primary/10 hover:text-primary transition-colors"
+                    onClick={() => setSelectedMainCategory(category.id)}
+                  >
+                    {category.name}
+                  </Badge>
+                ))}
+              </div>
+              {!selectedMainCategory && (
+                <p className="text-sm text-destructive">Vui lòng chọn một thể loại chính</p>
+              )}
             </div>
-            {categories.length > 0 && (
+
+            <div className="space-y-2">
+              <Label>Thẻ phụ</Label>
+              <div className="flex flex-wrap gap-3">
+                {tags.map((tag) => (
+                  <Badge
+                    key={tag.id}
+                    variant={selectedTags.includes(tag.id) ? "default" : "outline"}
+                    className="cursor-pointer text-sm px-4 py-1 hover:bg-primary/10 hover:text-primary transition-colors"
+                    onClick={() => toggleTag(tag.id)}
+                  >
+                    {tag.name}
+                  </Badge>
+                ))}
+              </div>
               <p className="text-sm text-muted-foreground">
-                Đã chọn {selectedCategories.length} thể loại
+                Đã chọn {selectedTags.length} thẻ
               </p>
-            )}
+            </div>
           </div>
 
           <div className="flex gap-4 pt-4">
@@ -187,7 +217,7 @@ export default function CreateStoryPage() {
             <Button 
               type="submit" 
               className="w-full"
-              disabled={isLoading || selectedCategories.length === 0}
+              disabled={isLoading || !selectedMainCategory}
             >
               {isLoading ? 'Đang tạo...' : 'Tạo truyện'}
             </Button>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
 import * as React from "react"
@@ -5,6 +6,16 @@ import { MessageCircle, X, Send, Trash2 } from "lucide-react"
 import clsx from "clsx"
 import { usePathname } from "next/navigation"
 import { chatWithAssistant, Message } from "@/lib/chat-bot"
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import rehypeHighlight from 'rehype-highlight'
+import rehypePrism from 'rehype-prism-plus'
+
+// Import CSS cần thiết
+import 'katex/dist/katex.min.css'
+import 'highlight.js/styles/github-dark.css'
 
 interface ChatBotProps {
   className?: string
@@ -124,7 +135,7 @@ export const ChatBot: React.FC<ChatBotProps> = ({ className }) => {
     <div className="fixed bottom-8 right-8 z-50" ref={chatRef}>
       <div
         className={clsx(
-          "bg-white rounded-lg shadow-lg",
+          "bg-background rounded-lg shadow-lg",
           "w-[400px] h-[600px]",
           "transition-all duration-300 ease-in-out",
           "absolute bottom-16 right-0",
@@ -169,15 +180,54 @@ export const ChatBot: React.FC<ChatBotProps> = ({ className }) => {
                   "mb-4 max-w-[80%] rounded-lg p-3",
                   message.role === "user"
                     ? "ml-auto bg-primary text-primary-foreground"
-                    : "bg-muted"
+                    : "bg-muted/50 prose prose-stone dark:prose-invert max-w-none"
                 )}
               >
-                {message.content}
+                {message.role === "user" ? (
+                  message.content
+                ) : (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[rehypeKatex, rehypeHighlight, rehypePrism]}
+                    components={{
+                      h1: ({node, ...props}) => <h1 className="text-xl font-bold mt-4 mb-2" {...props} />,
+                      h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-3 mb-2" {...props} />,
+                      h3: ({node, ...props}) => <h3 className="text-md font-bold mt-2 mb-1" {...props} />,
+                      p: ({node, ...props}) => <p className="mb-2" {...props} />,
+                      ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-2" {...props} />,
+                      ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-2" {...props} />,
+                      li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                      pre: ({node, ...props}) => <pre className="bg-transparent p-0" {...props} />,
+                      blockquote: ({node, ...props}) => (
+                        <blockquote className="border-l-4 border-gray-300 pl-4 my-2 italic" {...props} />
+                      ),
+                      table: ({node, ...props}) => (
+                        <div className="overflow-x-auto my-2">
+                          <table className="min-w-full border-collapse border border-gray-300" {...props} />
+                        </div>
+                      ),
+                      th: ({node, ...props}) => (
+                        <th className="border border-gray-300 px-4 py-2 bg-gray-100" {...props} />
+                      ),
+                      td: ({node, ...props}) => (
+                        <td className="border border-gray-300 px-4 py-2" {...props} />
+                      ),
+                      a: ({node, ...props}) => (
+                        <a className="text-blue-500 hover:text-blue-600 underline" {...props} />
+                      ),
+                      img: ({node, ...props}) => (
+                        <img className="max-w-full h-auto rounded my-2" {...props} />
+                      ),
+                    }}
+                  >
+                    {message.content}
+                  </ReactMarkdown>
+                )}
               </div>
             ))
           )}
           {isLoading && (
-            <div className="bg-muted rounded-lg p-3 max-w-[80%] animate-pulse">
+            <div className="bg-muted/50 rounded-lg p-3 max-w-[80%] animate-pulse">
               Đang trả lời...
             </div>
           )}
@@ -185,7 +235,7 @@ export const ChatBot: React.FC<ChatBotProps> = ({ className }) => {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 border-t bg-muted/30">
+        <div className="p-4 border-t border-border bg-background/50">
           <div className="flex gap-3 items-end">
             <textarea
               rows={1}
@@ -193,7 +243,7 @@ export const ChatBot: React.FC<ChatBotProps> = ({ className }) => {
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Nhập tin nhắn..."
-              className="flex-1 px-4 py-3 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary resize-none min-h-[50px] max-h-[150px]"
+              className="flex-1 px-4 py-3 border border-border rounded-2xl bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none min-h-[50px] max-h-[150px]"
             />
             <button
               onClick={handleSendMessage}

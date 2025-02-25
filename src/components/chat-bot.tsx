@@ -132,19 +132,21 @@ export const ChatBot: React.FC<ChatBotProps> = ({ className }) => {
   }
 
   return (
-    <div className="fixed bottom-8 right-8 z-50" ref={chatRef}>
+    <div className="fixed bottom-8 right-8 z-50 md:bottom-8 md:right-8 bottom-0 right-0" ref={chatRef}>
       <div
         className={clsx(
           "bg-background rounded-lg shadow-lg",
-          "w-[400px] h-[600px]",
+          "w-full h-screen md:w-[400px] md:h-[600px]",
           "transition-all duration-300 ease-in-out",
-          "absolute bottom-16 right-0",
+          "fixed md:absolute bottom-0 right-0",
           "flex flex-col",
           isOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none",
+          "md:rounded-lg rounded-none",
+          isOpen ? "overflow-hidden" : "",
         )}
       >
         {/* Header */}
-        <div className="p-4 border-b flex justify-between items-center bg-primary text-primary-foreground rounded-t-lg">
+        <div className="p-4 border-b flex justify-between items-center bg-primary text-primary-foreground md:rounded-t-lg rounded-none sticky top-0 z-10">
           <div className="flex items-center gap-2">
             <MessageCircle className="w-5 h-5" />
             <h3 className="font-semibold text-lg">Trợ lý Truyện</h3>
@@ -167,7 +169,7 @@ export const ChatBot: React.FC<ChatBotProps> = ({ className }) => {
         </div>
 
         {/* Chat Messages Area */}
-        <div className="flex-1 p-4 overflow-y-auto">
+        <div className="flex-1 p-4 overflow-y-auto overscroll-contain">
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               Chào mừng bạn đến với Trợ lý Truyện! Hãy đặt câu hỏi để bắt đầu.
@@ -235,7 +237,7 @@ export const ChatBot: React.FC<ChatBotProps> = ({ className }) => {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 border-t border-border bg-background/50">
+        <div className="p-4 border-t border-border bg-background/50 sticky bottom-0 z-10">
           <div className="flex gap-3 items-end">
             <textarea
               rows={1}
@@ -273,6 +275,8 @@ export const ChatBot: React.FC<ChatBotProps> = ({ className }) => {
           "transition-all duration-300 ease-in-out",
           "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
           "flex items-center gap-2",
+          "md:static fixed bottom-4 right-4",
+          isOpen ? "md:block hidden" : "block",
           className
         )}
         aria-label="Mở trợ lý truyện"

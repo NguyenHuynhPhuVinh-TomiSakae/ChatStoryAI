@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { User, Pencil, Trash2, ChevronLeft, Users, ChevronUp, ChevronDown, Sparkles } from "lucide-react"
 import { toast } from "sonner"
+import Skeleton from "react-loading-skeleton"
+import "react-loading-skeleton/dist/skeleton.css"
 import {
   Tabs,
   TabsContent,
@@ -87,12 +89,14 @@ export default function WriteChapterContent({
     id?: number;
   }>>([])
   const [isAIDialogOpen, setIsAIDialogOpen] = useState(false)
+  const [isLoadingData, setIsLoadingData] = useState(true)
 
   const mainCharacters = characters.filter(c => c.role === 'main')
   const supportingCharacters = characters.filter(c => c.role === 'supporting')
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoadingData(true)
       try {
         const storyRes = await fetch(`/api/stories/${storyId}`)
         const storyData = await storyRes.json()
@@ -119,6 +123,8 @@ export default function WriteChapterContent({
         }
       } catch (error) {
         toast.error('Không thể tải dữ liệu')
+      } finally {
+        setIsLoadingData(false)
       }
     }
 
@@ -293,10 +299,21 @@ export default function WriteChapterContent({
           </Button>
         </div>
         
-        <h1 className="text-2xl font-bold">{chapter?.title || 'Đang tải...'}</h1>
-        <div className="mt-1 text-muted-foreground">
-          {chapter?.status === 'published' ? 'Đã xuất bản' : 'Bản nháp'}
-        </div>
+        {isLoadingData ? (
+          <>
+            <Skeleton height={28} width="40%" />
+            <div className="mt-1">
+              <Skeleton height={16} width="20%" />
+            </div>
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl font-bold">{chapter?.title || 'Đang tải...'}</h1>
+            <div className="mt-1 text-muted-foreground">
+              {chapter?.status === 'published' ? 'Đã xuất bản' : 'Bản nháp'}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Main content */}
@@ -304,189 +321,207 @@ export default function WriteChapterContent({
         {/* Chat history */}
         <div className="lg:col-span-8 flex flex-col h-[70vh] lg:h-[75vh] overflow-hidden">
           <div className="flex-1 overflow-y-auto space-y-4 bg-background rounded-lg p-4 border">
-            {dialogues.map((dialogue) => {
-              if (dialogue.type === 'aside') {
-                return (
-                  <div key={dialogue.dialogue_id} className="my-4 px-8 text-center text-muted-foreground italic group">
-                    {editingDialogue?.dialogue_id === dialogue.dialogue_id ? (
-                      <div className="mt-1">
-                        <Textarea
-                          value={editContent}
-                          onChange={(e) => setEditContent(e.target.value)}
-                          className="min-h-[60px] text-center italic"
-                        />
-                        <div className="flex gap-2 mt-2 justify-center">
-                          <Button
-                            size="sm"
-                            onClick={() => handleEditDialogue(dialogue.dialogue_id)}
-                          >
-                            Lưu
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setEditingDialogue(null)
-                              setEditContent("")
-                            }}
-                          >
-                            Hủy
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div>{dialogue.content}</div>
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 justify-center mt-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => handleMoveDialogue(dialogue.dialogue_id, 'up')}
-                            disabled={dialogues.indexOf(dialogue) === 0}
-                          >
-                            <ChevronUp className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => handleMoveDialogue(dialogue.dialogue_id, 'down')}
-                            disabled={dialogues.indexOf(dialogue) === dialogues.length - 1}
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => {
-                              setEditingDialogue(dialogue)
-                              setEditContent(dialogue.content)
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-destructive"
-                            onClick={() => setDeleteDialogueId(dialogue.dialogue_id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )
-              }
-
-              const character = characters.find(c => c.character_id === dialogue.character_id)
-              const isMainCharacter = character?.role === 'main'
-
-              return (
-                <div 
-                  key={dialogue.dialogue_id} 
-                  className={`flex items-start gap-3 group ${isMainCharacter ? 'flex-row-reverse' : ''}`}
-                >
-                  <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                    {character?.avatar_image ? (
-                      <Image
-                        src={character.avatar_image}
-                        alt={character.name}
-                        width={40}
-                        height={40}
-                        className="object-cover"
+            {isLoadingData ? (
+              Array(5).fill(0).map((_, index) => (
+                <div key={index} className={`flex items-start gap-3 ${index % 2 === 0 ? 'flex-row-reverse' : ''}`}>
+                  <Skeleton circle width={40} height={40} />
+                  <div className={`flex-1 ${index % 2 === 0 ? 'text-right' : ''}`}>
+                    <Skeleton width={100} height={20} style={{ marginLeft: index % 2 === 0 ? 'auto' : 0 }} />
+                    <div className={`mt-1 flex ${index % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+                      <Skeleton 
+                        width={200} 
+                        height={60} 
+                        style={{ borderRadius: '8px' }} 
                       />
-                    ) : (
-                      <User className="w-6 h-6 m-2" />
-                    )}
-                  </div>
-                  <div className={`flex-1 ${isMainCharacter ? 'text-right' : ''}`}>
-                    <div className="font-semibold">{character?.name}</div>
-                    {editingDialogue?.dialogue_id === dialogue.dialogue_id ? (
-                      <div className="mt-1">
-                        <Textarea
-                          value={editContent}
-                          onChange={(e) => setEditContent(e.target.value)}
-                          className="min-h-[60px]"
-                        />
-                        <div className="flex gap-2 mt-2 justify-end">
-                          <Button
-                            size="sm"
-                            onClick={() => handleEditDialogue(dialogue.dialogue_id)}
-                          >
-                            Lưu
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setEditingDialogue(null)
-                              setEditContent("")
-                            }}
-                          >
-                            Hủy
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        <div className={`mt-1 flex ${isMainCharacter ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`inline-block p-3 rounded-lg max-w-[80%] break-words whitespace-pre-wrap ${
-                            isMainCharacter 
-                              ? 'bg-primary text-primary-foreground' 
-                              : 'bg-muted'
-                          }`}>
-                            {dialogue.content}
-                          </div>
-                        </div>
-                        <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 ${isMainCharacter ? 'justify-end' : 'justify-start'}`}>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => handleMoveDialogue(dialogue.dialogue_id, 'up')}
-                            disabled={dialogues.indexOf(dialogue) === 0}
-                          >
-                            <ChevronUp className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => handleMoveDialogue(dialogue.dialogue_id, 'down')}
-                            disabled={dialogues.indexOf(dialogue) === dialogues.length - 1}
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => {
-                              setEditingDialogue(dialogue)
-                              setEditContent(dialogue.content)
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-destructive"
-                            onClick={() => setDeleteDialogueId(dialogue.dialogue_id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 </div>
-              )
-            })}
+              ))
+            ) : (
+              dialogues.map((dialogue) => {
+                if (dialogue.type === 'aside') {
+                  return (
+                    <div key={dialogue.dialogue_id} className="my-4 px-8 text-center text-muted-foreground italic group">
+                      {editingDialogue?.dialogue_id === dialogue.dialogue_id ? (
+                        <div className="mt-1">
+                          <Textarea
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            className="min-h-[60px] text-center italic"
+                          />
+                          <div className="flex gap-2 mt-2 justify-center">
+                            <Button
+                              size="sm"
+                              onClick={() => handleEditDialogue(dialogue.dialogue_id)}
+                            >
+                              Lưu
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingDialogue(null)
+                                setEditContent("")
+                              }}
+                            >
+                              Hủy
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div>{dialogue.content}</div>
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 justify-center mt-2">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => handleMoveDialogue(dialogue.dialogue_id, 'up')}
+                              disabled={dialogues.indexOf(dialogue) === 0}
+                            >
+                              <ChevronUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => handleMoveDialogue(dialogue.dialogue_id, 'down')}
+                              disabled={dialogues.indexOf(dialogue) === dialogues.length - 1}
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                setEditingDialogue(dialogue)
+                                setEditContent(dialogue.content)
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => setDeleteDialogueId(dialogue.dialogue_id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )
+                }
+
+                const character = characters.find(c => c.character_id === dialogue.character_id)
+                const isMainCharacter = character?.role === 'main'
+
+                return (
+                  <div 
+                    key={dialogue.dialogue_id} 
+                    className={`flex items-start gap-3 group ${isMainCharacter ? 'flex-row-reverse' : ''}`}
+                  >
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex-shrink-0">
+                      {character?.avatar_image ? (
+                        <Image
+                          src={character.avatar_image}
+                          alt={character.name}
+                          width={40}
+                          height={40}
+                          className="object-cover"
+                        />
+                      ) : (
+                        <User className="w-6 h-6 m-2" />
+                      )}
+                    </div>
+                    <div className={`flex-1 ${isMainCharacter ? 'text-right' : ''}`}>
+                      <div className="font-semibold">{character?.name}</div>
+                      {editingDialogue?.dialogue_id === dialogue.dialogue_id ? (
+                        <div className="mt-1">
+                          <Textarea
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            className="min-h-[60px]"
+                          />
+                          <div className="flex gap-2 mt-2 justify-end">
+                            <Button
+                              size="sm"
+                              onClick={() => handleEditDialogue(dialogue.dialogue_id)}
+                            >
+                              Lưu
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingDialogue(null)
+                                setEditContent("")
+                              }}
+                            >
+                              Hủy
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-2">
+                          <div className={`mt-1 flex ${isMainCharacter ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`inline-block p-3 rounded-lg max-w-[80%] break-words whitespace-pre-wrap ${
+                              isMainCharacter 
+                                ? 'bg-primary text-primary-foreground' 
+                                : 'bg-muted'
+                            }`}>
+                              {dialogue.content}
+                            </div>
+                          </div>
+                          <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 ${isMainCharacter ? 'justify-end' : 'justify-start'}`}>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => handleMoveDialogue(dialogue.dialogue_id, 'up')}
+                              disabled={dialogues.indexOf(dialogue) === 0}
+                            >
+                              <ChevronUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => handleMoveDialogue(dialogue.dialogue_id, 'down')}
+                              disabled={dialogues.indexOf(dialogue) === dialogues.length - 1}
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                setEditingDialogue(dialogue)
+                                setEditContent(dialogue.content)
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => setDeleteDialogueId(dialogue.dialogue_id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })
+            )}
           </div>
         </div>
 
@@ -502,57 +537,75 @@ export default function WriteChapterContent({
               <div className="overflow-y-auto flex-1 min-h-0">
                 <TabsContent value="main" className="mt-0 h-full">
                   <div className="grid grid-cols-2 sm:grid-cols-1 gap-2">
-                    {mainCharacters.map((character) => (
-                      <Button
-                        key={character.character_id}
-                        variant={selectedCharacter === character.character_id ? "default" : "outline"}
-                        className="flex items-center gap-2 w-full justify-start"
-                        onClick={() => setSelectedCharacter(character.character_id)}
-                      >
-                        <div className="w-8 h-8 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                          {character.avatar_image ? (
-                            <Image
-                              src={character.avatar_image}
-                              alt={character.name}
-                              width={32}
-                              height={32}
-                              className="object-cover"
-                            />
-                          ) : (
-                            <User className="w-5 h-5 m-1.5" />
-                          )}
+                    {isLoadingData ? (
+                      Array(3).fill(0).map((_, index) => (
+                        <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
+                          <Skeleton circle width={32} height={32} />
+                          <Skeleton width={100} height={20} />
                         </div>
-                        <span className="truncate">{character.name}</span>
-                      </Button>
-                    ))}
+                      ))
+                    ) : (
+                      mainCharacters.map((character) => (
+                        <Button
+                          key={character.character_id}
+                          variant={selectedCharacter === character.character_id ? "default" : "outline"}
+                          className="flex items-center gap-2 w-full justify-start"
+                          onClick={() => setSelectedCharacter(character.character_id)}
+                        >
+                          <div className="w-8 h-8 rounded-full overflow-hidden bg-muted flex-shrink-0">
+                            {character.avatar_image ? (
+                              <Image
+                                src={character.avatar_image}
+                                alt={character.name}
+                                width={32}
+                                height={32}
+                                className="object-cover"
+                              />
+                            ) : (
+                              <User className="w-5 h-5 m-1.5" />
+                            )}
+                          </div>
+                          <span className="truncate">{character.name}</span>
+                        </Button>
+                      ))
+                    )}
                   </div>
                 </TabsContent>
 
                 <TabsContent value="supporting" className="mt-0 h-full">
                   <div className="grid grid-cols-2 sm:grid-cols-1 gap-2">
-                    {supportingCharacters.map((character) => (
-                      <Button
-                        key={character.character_id}
-                        variant={selectedCharacter === character.character_id ? "default" : "outline"}
-                        className="flex items-center gap-2 w-full justify-start"
-                        onClick={() => setSelectedCharacter(character.character_id)}
-                      >
-                        <div className="w-8 h-8 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                          {character.avatar_image ? (
-                            <Image
-                              src={character.avatar_image}
-                              alt={character.name}
-                              width={32}
-                              height={32}
-                              className="object-cover"
-                            />
-                          ) : (
-                            <User className="w-5 h-5 m-1.5" />
-                          )}
+                    {isLoadingData ? (
+                      Array(3).fill(0).map((_, index) => (
+                        <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
+                          <Skeleton circle width={32} height={32} />
+                          <Skeleton width={100} height={20} />
                         </div>
-                        <span className="truncate">{character.name}</span>
-                      </Button>
-                    ))}
+                      ))
+                    ) : (
+                      supportingCharacters.map((character) => (
+                        <Button
+                          key={character.character_id}
+                          variant={selectedCharacter === character.character_id ? "default" : "outline"}
+                          className="flex items-center gap-2 w-full justify-start"
+                          onClick={() => setSelectedCharacter(character.character_id)}
+                        >
+                          <div className="w-8 h-8 rounded-full overflow-hidden bg-muted flex-shrink-0">
+                            {character.avatar_image ? (
+                              <Image
+                                src={character.avatar_image}
+                                alt={character.name}
+                                width={32}
+                                height={32}
+                                className="object-cover"
+                              />
+                            ) : (
+                              <User className="w-5 h-5 m-1.5" />
+                            )}
+                          </div>
+                          <span className="truncate">{character.name}</span>
+                        </Button>
+                      ))
+                    )}
                   </div>
                 </TabsContent>
               </div>
@@ -563,6 +616,7 @@ export default function WriteChapterContent({
                     variant={messageType === 'dialogue' ? "default" : "outline"}
                     onClick={() => setMessageType('dialogue')}
                     size="sm"
+                    disabled={isLoadingData}
                   >
                     Hội thoại
                   </Button>
@@ -570,36 +624,40 @@ export default function WriteChapterContent({
                     variant={messageType === 'aside' ? "default" : "outline"}
                     onClick={() => setMessageType('aside')}
                     size="sm"
+                    disabled={isLoadingData}
                   >
                     Aside
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      // Reset hasFetchedRef trước khi mở dialog
-                      setIsAIDialogOpen(true);
-                    }}
+                    onClick={() => setIsAIDialogOpen(true)}
                     size="sm"
                     className="ml-auto"
+                    disabled={isLoadingData}
                   >
                     <Sparkles className="h-3.5 w-3.5 mr-1" />
                     AI
                   </Button>
                 </div>
 
-                <Textarea
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder={
-                    messageType === 'aside' 
-                      ? "Nhập nội dung aside..." 
-                      : "Nhập nội dung hội thoại..."
-                  }
-                  className="resize-none min-h-[120px]"
-                />
+                {isLoadingData ? (
+                  <Skeleton height={120} />
+                ) : (
+                  <Textarea
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder={
+                      messageType === 'aside' 
+                        ? "Nhập nội dung aside..." 
+                        : "Nhập nội dung hội thoại..."
+                    }
+                    className="resize-none min-h-[120px]"
+                  />
+                )}
+                
                 <Button 
                   onClick={handleSendMessage}
-                  disabled={isLoading || (!selectedCharacter && messageType === 'dialogue') || !newMessage.trim()}
+                  disabled={isLoading || isLoadingData || (!selectedCharacter && messageType === 'dialogue') || !newMessage.trim()}
                 >
                   {isLoading ? "Đang gửi..." : "Gửi"}
                 </Button>

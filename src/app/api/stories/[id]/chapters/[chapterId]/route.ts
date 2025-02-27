@@ -119,6 +119,33 @@ export async function PUT(
          WHERE chapter_id = ?`,
         [title, summary, status, publishOrder, chapterId]
       )
+
+      // Chỉ tạo thông báo khi chương được xuất bản lần đầu
+      const [followers] = await pool.execute(
+        "SELECT user_id FROM story_bookmarks WHERE story_id = ?",
+        [storyId]
+      ) as any[]
+
+      if (followers.length > 0) {
+        const [storyInfo] = await pool.execute(
+          "SELECT title FROM stories WHERE story_id = ?",
+          [storyId]
+        ) as any[]
+
+        const notifications = followers.map((follower: any) => [
+          follower.user_id,
+          storyId,
+          chapterId,
+          `Chương mới: ${title}`,
+          `Truyện "${storyInfo[0].title}" vừa cập nhật chương mới`
+        ])
+
+        await pool.query(`
+          INSERT INTO notifications 
+          (user_id, story_id, chapter_id, title, message)
+          VALUES ?
+        `, [notifications])
+      }
     } else {
       await pool.execute(
         `UPDATE story_chapters 

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookOpenText, Eye, Heart } from "lucide-react"
 import { useState, useEffect } from "react"
+import { useLoading } from "@/providers/loading-provider"
 
 interface StoryCardProps {
   story: {
@@ -26,6 +27,7 @@ interface StoryCardProps {
 
 export function StoryCard({ story, onClick, variant = 'default', showRelevance = false }: StoryCardProps) {
   const router = useRouter()
+  const { startLoading } = useLoading()
   const [favoriteCount, setFavoriteCount] = useState(story.favorite_count)
 
   useEffect(() => {
@@ -52,12 +54,13 @@ export function StoryCard({ story, onClick, variant = 'default', showRelevance =
       await fetch(`/api/library/${story.story_id}/view`, {
         method: 'POST',
       })
-      
+      startLoading()
       // Chuyển hướng đến trang chi tiết
       router.push(`/library/${story.story_id}`)
     } catch (error) {
       console.error('Lỗi khi cập nhật lượt xem:', error)
       // Vẫn chuyển hướng ngay cả khi không cập nhật được lượt xem
+      startLoading()
       router.push(`/library/${story.story_id}`)
     }
   }

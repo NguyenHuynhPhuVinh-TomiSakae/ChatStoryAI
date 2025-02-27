@@ -14,6 +14,7 @@ import { IdeaGenerator } from "@/components/story/IdeaGenerator"
 import { CoverImagePrompt } from "@/components/story/CoverImagePrompt"
 import Skeleton from "react-loading-skeleton"
 import "react-loading-skeleton/dist/skeleton.css"
+import { useLoading } from "@/providers/loading-provider"
 
 interface MainCategory {
   id: number
@@ -36,6 +37,7 @@ interface GeneratedIdea {
 
 export default function CreateStoryPage() {
   const router = useRouter()
+  const { startLoading } = useLoading()
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [mainCategories, setMainCategories] = useState<MainCategory[]>([])
@@ -139,6 +141,7 @@ export default function CreateStoryPage() {
       }
 
       toast.success('Tạo truyện mới thành công!')
+      startLoading()
       router.push('/stories')
     } catch (error: any) {
       toast.error(error.message || 'Đã có lỗi xảy ra')

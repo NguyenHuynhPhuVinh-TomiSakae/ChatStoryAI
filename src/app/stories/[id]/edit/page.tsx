@@ -30,6 +30,7 @@ import { Suspense } from "react"
 import { ChevronLeft } from "lucide-react"
 import { IdeaGenerator } from "@/components/story/IdeaGenerator"
 import { CoverImagePrompt } from "@/components/story/CoverImagePrompt"
+import { useLoading } from "@/providers/loading-provider"
 
 interface MainCategory {
   id: number
@@ -63,6 +64,7 @@ interface GeneratedIdea {
 function EditStoryContent({ storyId }: { storyId: string }) {
   const router = useRouter()
   const { data: session } = useSession()
+  const { startLoading } = useLoading()
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [mainCategories, setMainCategories] = useState<MainCategory[]>([])
@@ -167,6 +169,7 @@ function EditStoryContent({ storyId }: { storyId: string }) {
       
       router.refresh()
       
+      startLoading()
       router.push('/stories')
     } catch (error: any) {
       toast.error(error.message || 'Đã có lỗi xảy ra')
@@ -188,6 +191,7 @@ function EditStoryContent({ storyId }: { storyId: string }) {
       }
 
       toast.success('Xóa truyện thành công')
+      startLoading()
       router.push('/stories')
     } catch (error: any) {
       toast.error(error.message || 'Đã có lỗi xảy ra')

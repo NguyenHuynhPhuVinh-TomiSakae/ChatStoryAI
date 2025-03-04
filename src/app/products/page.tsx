@@ -9,7 +9,7 @@ import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 
 export default function ProductsPage() {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
 
   const products = [
     {
@@ -40,11 +40,28 @@ export default function ProductsPage() {
       isPopular: true,
       showLabel: true,
       label: "Ủng hộ dự án ❤️"
+    },
+    {
+      name: "Gói Ủng Hộ Miễn Phí",
+      price: "0đ",
+      features: [
+        "Truy cập sớm tính năng mới",
+        "Chế độ tạo truyện bằng trò chuyện AI", 
+        "Nhận khung avatar ủng hộ",
+        "Hỗ trợ phát triển dự án",
+        "Không cần thanh toán"
+      ],
+      isPopular: false,
+      showLabel: true,
+      label: "Ủng hộ miễn phí 🎁"
     }
   ]
 
   const handlePayment = async (product: any) => {
     if (product.price === "0đ") {
+      if (product.name === "Gói Ủng Hộ Miễn Phí") {
+        await handleFreeSupporterUpgrade();
+      }
       return;
     }
 
@@ -66,6 +83,28 @@ export default function ProductsPage() {
     }
   };
 
+  const handleFreeSupporterUpgrade = async () => {
+    if (!session) {
+      toast.error("Vui lòng đăng nhập để trở thành người ủng hộ");
+      return;
+    }
+
+    try {
+      // Gọi API cập nhật badge
+      await fetch('/api/user/update-badge', {
+        method: 'POST'
+      });
+      
+      // Cập nhật session
+      await update({ hasBadge: true });
+      
+      toast.success('Bạn đã trở thành người ủng hộ!');
+    } catch (error) {
+      console.error("Lỗi khi cập nhật:", error);
+      toast.error("Có lỗi xảy ra khi xử lý yêu cầu");
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <main className="flex-1 bg-background">
@@ -77,7 +116,7 @@ export default function ProductsPage() {
             </p>
           </div>
 
-          <div className="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
             {products.map((product, index) => (
               <Card 
                 key={index} 

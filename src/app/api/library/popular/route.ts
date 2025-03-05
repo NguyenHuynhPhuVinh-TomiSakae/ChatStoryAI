@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     const limit = 20
     const offset = (page - 1) * limit
 
-    const [stories] = await pool.execute(`
+    const [stories] = await pool.query(`
       SELECT 
         s.story_id,
         s.title,

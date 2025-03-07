@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Facebook, Instagram, Linkedin, Twitter } from "lucide-react"
+import { Facebook, Instagram, Linkedin, Twitter, Github } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
@@ -87,6 +87,15 @@ function Footer() {
             >
               <Facebook className="h-4 w-4" />
               <span className="sr-only">Facebook</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="rounded-full"
+              onClick={() => window.open("https://github.com/NguyenHuynhPhuVinh-TomiSakae/ChatStoryAI", "_blank")}
+            >
+              <Github className="h-4 w-4" />
+              <span className="sr-only">GitHub</span>
             </Button>
             <Button 
               variant="outline" 
